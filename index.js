@@ -10,27 +10,27 @@ const Promise = require('bluebird'),
 let defaultExportFormats = {
   'application/vnd.google-apps.site': {
     extension: 'zip',
-    mimeType: 'application/zip'
+    mimeType: 'application/zip',
   },
   'application/vnd.google-apps.document': {
     extension: 'docx',
     mimeType:
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   },
   'application/vnd.google-apps.spreadsheet': {
     extension: 'xlsx',
     mimeType:
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   },
   'application/vnd.google-apps.presentation': {
     extension: 'pptx',
     mimeType:
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   },
   'application/vnd.google-apps.drawing': {
     extension: 'png',
-    mimeType: 'image/png'
-  }
+    mimeType: 'image/png',
+  },
 };
 
 let ROOT_FOLDER = '';
@@ -43,7 +43,7 @@ let ROOT_FOLDER = '';
  *
  * @returns     {Object}  the instance of this class with its options and constants set
  */
-var NodeGoogleDrive = function(options) {
+var NodeGoogleDrive = function (options) {
   var _this = this;
 
   this.name = 'Node Google Drive';
@@ -54,7 +54,7 @@ var NodeGoogleDrive = function(options) {
   _this.options = options;
   ROOT_FOLDER = _this.options.ROOT_FOLDER = _this.options.ROOT_FOLDER || null;
   _this.options.GOOGLE_AUTH_SCOPE = _this.options.GOOGLE_AUTH_SCOPE || [
-    'https://www.googleapis.com/auth/drive'
+    'https://www.googleapis.com/auth/drive',
   ];
 
   var auth_client = new GoogleAuth();
@@ -62,7 +62,7 @@ var NodeGoogleDrive = function(options) {
   // var jwt_client;
 
   _this.service = {
-    files: null
+    files: null,
   };
 
   /**
@@ -71,36 +71,36 @@ var NodeGoogleDrive = function(options) {
    * @param      {Object}  google_auth  - google auth type instance. Either Oauth2 or JWT
    * @return     {Object}  service property of this instance, with promisified methods for the files namespace
    */
-  var setService = function(google_auth) {
-    return Promise.try(function() {
+  var setService = function (google_auth) {
+    return Promise.try(function () {
       let service = google.drive({
         version: 'v3',
-        auth: google_auth
+        auth: google_auth,
       });
       return service;
-    }).then(function(service) {
+    }).then(function (service) {
       _this.service.files = Promise.promisifyAll(service.files);
 
       return _this.service;
     });
   };
 
-  var storeOauthToken = function(new_token, token_path) {
+  var storeOauthToken = function (new_token, token_path) {
     return fs
       .writeFileAsync(token_path, JSON.stringify(new_token, null, 4))
-      .then(function() {
+      .then(function () {
         console.log('Token stored to ' + token_path);
         return new_token;
       });
   };
 
-  var renewOauthToken = function(google_auth, token_path) {
-    return Promise.try(function() {
+  var renewOauthToken = function (google_auth, token_path) {
+    return Promise.try(function () {
       google_auth
-        .refreshAccessToken(function(err, new_token) {
+        .refreshAccessToken(function (err, new_token) {
           return storeOauthToken(new_token, token_path);
         })
-        .then(function(new_token) {
+        .then(function (new_token) {
           google_auth.credentials = new_token;
           debug('new token expiry date', new_token.expiry_date);
           return setService(google_auth);
@@ -122,25 +122,25 @@ var NodeGoogleDrive = function(options) {
    * @param  {string}              token_path   The token path
    * @return {Promise<Object>}     The service property of this instance
    */
-  var getNewOauthToken = function(google_auth, token_path) {
-    return Promise.try(function() {
+  var getNewOauthToken = function (google_auth, token_path) {
+    return Promise.try(function () {
       var authUrl = google_auth.generateAuthUrl({
         access_type: 'offline',
-        scope: _this.options.GOOGLE_AUTH_SCOPE
+        scope: _this.options.GOOGLE_AUTH_SCOPE,
       });
       console.log('Authorize this app by visiting this url: ', authUrl);
       var rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
-      rl.question('Enter the code from that page here: ', function(code) {
+      rl.question('Enter the code from that page here: ', function (code) {
         rl.close();
         google_auth
-          .getToken(code, function(err, new_token) {
+          .getToken(code, function (err, new_token) {
             google_auth.credentials = new_token;
             return storeOauthToken(new_token, token_path);
           })
-          .then(function() {
+          .then(function () {
             return setService(google_auth);
           });
       });
@@ -156,7 +156,7 @@ var NodeGoogleDrive = function(options) {
    * @param  {string}   token_path   the path to store the client token
    * @return {Promise}  a promise that unfolds to a new auth token
    */
-  var authorizeClientSecret = function(credentials, token_path) {
+  var authorizeClientSecret = function (credentials, token_path) {
     var clientSecret = credentials.installed.client_secret;
     var clientId = credentials.installed.client_id;
     var redirectUrl = credentials.installed.redirect_uris[0];
@@ -169,20 +169,20 @@ var NodeGoogleDrive = function(options) {
     // Check if we have previously stored a token.
     return fs
       .readFileAsync(token_path)
-      .then(function(token) {
+      .then(function (token) {
         google_auth.credentials = JSON.parse(token);
 
         return renewOauthToken(google_auth, token_path);
       })
-      .catch(function(err) {
+      .catch(function (err) {
         debug(err);
         return getNewOauthToken(google_auth, token_path);
       });
   };
 
-  var renewJwtAuth = function(google_auth) {
-    return new Promise(function(resolve, reject) {
-      google_auth.authorize(function(err, token) {
+  var renewJwtAuth = function (google_auth) {
+    return new Promise(function (resolve, reject) {
+      google_auth.authorize(function (err, token) {
         if (err) {
           reject(err);
         }
@@ -192,8 +192,8 @@ var NodeGoogleDrive = function(options) {
   };
 
   // Request an auth token using a client secret json file
-  _this.requestAuthToken = function(creds, token_path) {
-    return Promise.try(function() {
+  _this.requestAuthToken = function (creds, token_path) {
+    return Promise.try(function () {
       let credsObj;
       if (typeof creds === 'string') {
         credsObj = require(creds);
@@ -201,15 +201,15 @@ var NodeGoogleDrive = function(options) {
         credsObj = creds;
       }
       return credsObj;
-    }).then(function() {
+    }).then(function () {
       return authorizeClientSecret(creds, token_path);
     });
   };
 
   // Use a service account
-  _this.useServiceAccountAuth = function(creds) {
+  _this.useServiceAccountAuth = function (creds) {
     debug('trying to use service account');
-    return Promise.try(function() {
+    return Promise.try(function () {
       let credsObj;
 
       if (typeof creds === 'string') {
@@ -218,7 +218,7 @@ var NodeGoogleDrive = function(options) {
         credsObj = creds;
       }
       return credsObj;
-    }).then(function(credsObj) {
+    }).then(function (credsObj) {
       let google_auth = new auth_client.JWT(
         credsObj.client_email,
         null,
@@ -231,9 +231,9 @@ var NodeGoogleDrive = function(options) {
   };
 
   // Use an existing auth token
-  _this.useAuthToken = function(token, cb) {};
+  _this.useAuthToken = function (token, cb) {};
 
-  _this.isAuthActive = function(google_auth) {
+  _this.isAuthActive = function (google_auth) {
     return !!google_auth;
   };
 
@@ -268,7 +268,7 @@ var NodeGoogleDrive = function(options) {
  *
  * @return {Promise<files/list#response>}  List of files and or folders resulting from the request
  */
-NodeGoogleDrive.prototype.list = async function({
+NodeGoogleDrive.prototype.list = async function ({
   fileId = ROOT_FOLDER,
   pageToken = null,
   recursive = false,
@@ -279,7 +279,7 @@ NodeGoogleDrive.prototype.list = async function({
   spaces = 'drive',
   pageSize = 100,
   supportsTeamDrives = false,
-  teamDriveId = ''
+  teamDriveId = '',
 } = {}) {
   q += recursive === false ? `AND ('${fileId}' in parents)` : '';
 
@@ -294,17 +294,17 @@ NodeGoogleDrive.prototype.list = async function({
     spaces,
     pageSize,
     supportsTeamDrives,
-    teamDriveId
+    teamDriveId,
   };
 
   return this.service.files
     .listAsync(request)
-    .then(function(response) {
+    .then(function (response) {
       debug('Found %s elements', response.files.length);
       response.parentFolder = fileId;
       return response;
     })
-    .catch(function(err) {
+    .catch(function (err) {
       debug('Error listing files ', err.message);
       throw err;
     });
@@ -330,7 +330,7 @@ NodeGoogleDrive.prototype.list = async function({
  *
  * @return {Array<google.drive.files#resource>}  array of file resources results
  */
-NodeGoogleDrive.prototype.listFiles = async function(
+NodeGoogleDrive.prototype.listFiles = async function (
   parentFolder,
   pageToken,
   recursive,
@@ -343,7 +343,7 @@ NodeGoogleDrive.prototype.listFiles = async function(
     recursive,
     includeRemoved,
     fields,
-    q: ` (mimeType!='application/vnd.google-apps.folder') `
+    q: ` (mimeType!='application/vnd.google-apps.folder') `,
   });
 };
 
@@ -364,7 +364,7 @@ NodeGoogleDrive.prototype.listFiles = async function(
  *
  * @return {Array<google.drive.files#resource>}  array of folder resources results
  */
-NodeGoogleDrive.prototype.listFolders = async function(
+NodeGoogleDrive.prototype.listFolders = async function (
   parentFolder,
   pageToken,
   recursive,
@@ -377,7 +377,7 @@ NodeGoogleDrive.prototype.listFolders = async function(
     recursive,
     includeRemoved,
     fields,
-    q: ` (mimeType='application/vnd.google-apps.folder') `
+    q: ` (mimeType='application/vnd.google-apps.folder') `,
   });
   return { folders: files, parentFolder };
 };
@@ -403,7 +403,7 @@ NodeGoogleDrive.prototype.listFolders = async function(
  *                                                           resource's name
  * @return {Promise}  A promise that resolves when the file is downloaded
  */
-NodeGoogleDrive.prototype.exportFile = function(
+NodeGoogleDrive.prototype.exportFile = function (
   file,
   destinationFolder,
   mimeOptions,
@@ -414,11 +414,11 @@ NodeGoogleDrive.prototype.exportFile = function(
   let { extension, mimeType } = mimeOptions ||
       defaultExportFormats[file.mimeType] || {
         extension: 'pdf',
-        mimeType: 'application/pdf'
+        mimeType: 'application/pdf',
       },
     request = {
       fileId: file.id,
-      mimeType: mimeType
+      mimeType: mimeType,
     },
     destination = `${destinationFolder || '/tmp'}/${file.name}.${extension}`,
     dest = fs.createWriteStream(destination);
@@ -426,10 +426,10 @@ NodeGoogleDrive.prototype.exportFile = function(
   return new Promise((resolve, reject) => {
     _this.service.files
       .export(request)
-      .on('end', function() {
+      .on('end', function () {
         resolve(destination);
       })
-      .on('error', function(err) {
+      .on('error', function (err) {
         reject(err);
       })
       .pipe(dest);
@@ -447,7 +447,7 @@ NodeGoogleDrive.prototype.exportFile = function(
  * @param  {string}                       fileName           (optional) The file name. Defaults to the file resource's name
  * @return {Promise}                      A promise that resolves when the file is downloaded
  */
-NodeGoogleDrive.prototype.getFile = function(
+NodeGoogleDrive.prototype.getFile = function (
   file,
   destinationFolder,
   fileName
@@ -463,7 +463,7 @@ NodeGoogleDrive.prototype.getFile = function(
   let _this = this,
     request = {
       fileId: file.id,
-      alt: 'media'
+      alt: 'media',
     },
     destination = `${destinationFolder || '/tmp'}/${file.name}`,
     dest = fs.createWriteStream(destination);
@@ -471,10 +471,10 @@ NodeGoogleDrive.prototype.getFile = function(
   return new Promise((resolve, reject) => {
     _this.service.files
       .get(request)
-      .on('end', function() {
+      .on('end', function () {
         resolve(destination);
       })
-      .on('error', function(err) {
+      .on('error', function (err) {
         reject(err);
       })
       .pipe(dest);
@@ -493,12 +493,12 @@ NodeGoogleDrive.prototype.getFile = function(
  * @param  {string}           fileId  The file identifier
  * @return {Promise<Object>}  retult of the deletion attempt
  */
-NodeGoogleDrive.prototype.removeFile = async function(fileId) {
+NodeGoogleDrive.prototype.removeFile = async function (fileId) {
   return this.service.files.deleteAsync({
     fileId: fileId,
     resource: {
-      fileId: fileId
-    }
+      fileId: fileId,
+    },
   });
 };
 
@@ -561,12 +561,12 @@ NodeGoogleDrive.prototype.removeFile = async function(fileId) {
  * @param  {string}           [arg1.fields]        - Preserved for retrocompatibility, has no effect
  * @return {Promise<Object>}  the response from google drive
  */
-NodeGoogleDrive.prototype.create = async function({
+NodeGoogleDrive.prototype.create = async function ({
   source = 'some file',
   parentFolder = ROOT_FOLDER,
   name = null,
   mimeType = null,
-  fields
+  fields,
 }) {
   let media = { mimeType };
 
@@ -582,18 +582,18 @@ NodeGoogleDrive.prototype.create = async function({
     resource: {
       name,
       mimeType,
-      parents: [parentFolder]
+      parents: [parentFolder],
     },
-    media
+    media,
   };
 
   return this.service.files
     .createAsync(creationRequest)
-    .then(function(response) {
+    .then(function (response) {
       debug('Wrote file to Google Drive', response);
       return response;
     })
-    .catch(function(err) {
+    .catch(function (err) {
       debug('The API returned an error: ', err.message);
       throw err;
     });
@@ -617,12 +617,57 @@ NodeGoogleDrive.prototype.create = async function({
  * @param  {string}           [folderName]    - The name of the folder that will be created
  * @return {Promise<Object>}  the response from google drive
  */
-NodeGoogleDrive.prototype.createFolder = function(parentFolder, folderName) {
+NodeGoogleDrive.prototype.createFolder = function (parentFolder, folderName) {
   return this.create({
     parentFolder,
     name: folderName || 'Generic Folder',
-    mimeType: 'application/vnd.google-apps.folder'
+    mimeType: 'application/vnd.google-apps.folder',
   });
+};
+
+/**
+ * @memberof createOrDelete
+ *
+ * Creates any type of File specified using mimeType.
+ *
+ * @param {string} [fileBody]            - The the contents of the file to create
+ * @param {string} [parentFolder]        - The parent folder on which to write. Defaults to the ROOT_FOLDER passed in the constructor options
+ * @param {string} [destinationFilename] - The destination filename, defaults to the basename of the uploaded file
+ * @param {string} [mimeType] - The file's mime type. If not provided, we will try to detect it, which won't work for non binary types
+ *
+ * @returns {Promise<Object>} the response from google drive
+ */
+NodeGoogleDrive.prototype.createFile = function (
+  fileBody,
+  parentFolder,
+  destinationFilename,
+  mimeType
+) {
+  var _this = this;
+  var folderId = parentFolder || _this.options.ROOT_FOLDER;
+  var fileMetadata = {
+    name: destinationFilename,
+    mimeType: mimeType,
+  };
+  if (folderId !== null) {
+    fileMetadata.parents = [folderId];
+  }
+  return _this.service.files
+    .createAsync({
+      resource: fileMetadata,
+      media: {
+        mimeType: mimeType,
+        body: fileBody,
+      },
+    })
+    .then(function (response) {
+      debug('Wrote file to Google Drive', response);
+      return response;
+    })
+    .catch(function (err) {
+      debug('The API returned an error: ', err);
+      throw err;
+    });
 };
 
 /**
@@ -663,7 +708,7 @@ NodeGoogleDrive.prototype.createFolder = function(parentFolder, folderName) {
  * @param  {string}  [opts.fields]               - Fields to ask in the request to Google Drive
  * @return {Promise<Object>}  the response from google drive
  */
-NodeGoogleDrive.prototype.writeFile = function(
+NodeGoogleDrive.prototype.writeFile = function (
   source,
   parentFolder,
   name,
@@ -680,7 +725,7 @@ NodeGoogleDrive.prototype.writeFile = function(
     parentFolder,
     name,
     mimeType,
-    fields
+    fields,
   });
 };
 
@@ -703,7 +748,7 @@ NodeGoogleDrive.prototype.writeFile = function(
  * @param  {string}           [destinationFilename]  - The destination filename
  * @return {Promise<Object>}  the response from google drive
  */
-NodeGoogleDrive.prototype.writeTextFile = function(
+NodeGoogleDrive.prototype.writeTextFile = function (
   content,
   parentFolder,
   destinationFilename
@@ -712,7 +757,7 @@ NodeGoogleDrive.prototype.writeTextFile = function(
     source: content,
     parentFolder,
     destinationFilename: destinationFilename || 'Text_file_' + Date.now(),
-    mimeType: 'text/plain'
+    mimeType: 'text/plain',
   });
 };
 
@@ -728,7 +773,7 @@ NodeGoogleDrive.prototype.writeTextFile = function(
  * @param  {string}           [destinationFilename]  - The destination filename
  * @return {Promise<Object>}  the response from google drive
  */
-NodeGoogleDrive.prototype.writePDFFile = async function(
+NodeGoogleDrive.prototype.writePDFFile = async function (
   sourcefile,
   parentFolder,
   destinationFilename
@@ -741,7 +786,7 @@ NodeGoogleDrive.prototype.writePDFFile = async function(
     source: sourcefile,
     parentFolder,
     name: destinationFilename,
-    mimeType: 'application/pdf'
+    mimeType: 'application/pdf',
   });
 };
 
